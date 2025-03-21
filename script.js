@@ -1,25 +1,48 @@
-const API_URL = "https://gaspar-chat-pqg0yqanw-tomasja6s-projects.vercel.app"; // Nahraď URL backendu
-
-async function sendMessage() {
-    const inputField = document.getElementById("user-input");
+document.addEventListener("DOMContentLoaded", function () {
     const chatBox = document.getElementById("chat-box");
+    const userInput = document.getElementById("user-input");
+    const sendButton = document.getElementById("send-btn");
 
-    const userMessage = inputField.value.trim();
-    if (!userMessage) return;
+    sendButton.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    });
 
-    chatBox.innerHTML += `<p><strong>Ty:</strong> ${userMessage}</p>`;
-    inputField.value = "";
+    function sendMessage() {
+        const userMessage = userInput.value.trim();
+        if (userMessage === "") return;
 
-    try {
-        const response = await fetch(API_URL, {
+        // Přidání zprávy uživatele do chatu
+        addMessage("Ty", userMessage);
+        userInput.value = "";
+
+        // Odeslání zprávy na server
+        fetch("https://tomasja6.github.io/gaspar-chat-web/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ message: userMessage }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.response) {
+                addMessage("Gaspar", data.response);
+            } else {
+                addMessage("Gaspar", "Chyba: Nepodařilo se získat odpověď.");
+            }
+        })
+        .catch(error => {
+            console.error("Chyba komunikace s Gasparem:", error);
+            addMessage("Gaspar", "Chyba komunikace! Zkus to znovu.");
         });
-        const data = await response.json();
-        chatBox.innerHTML += `<p><strong>Gaspar:</strong> ${data.response}</p>`;
-        chatBox.scrollTop = chatBox.scrollHeight;
-    } catch (error) {
-        chatBox.innerHTML += `<p style="color:red;">Chyba komunikace s Gasparem!</p>`;
     }
-}
+
+    function addMessage(sender, message) {
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
+        messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+        chatBox.appendChild(messageElement);
+        chatBox.scrollTop = chatBox.scrollHeight; // Posune chat dolů
+    }
+});
